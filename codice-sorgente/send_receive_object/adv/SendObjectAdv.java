@@ -36,9 +36,11 @@ public class SendObjectAdv {
 			System.out.println(client.toString());
 			System.out.println("Client connected: " + client.isConnected());
 			
+			System.out.println("Reading input objects..");
 			ObjectInputStream ois = new ObjectInputStream(client.getInputStream());
 			int matricola = (int)ois.readObject();
 			
+			System.out.println("Sending output objects..");
 			ObjectOutputStream oos = new ObjectOutputStream(client.getOutputStream());
 			for(int i=0;i<studenti.size();++i)
 				if(studenti.get(i).getMatricola()==matricola)
@@ -47,7 +49,7 @@ public class SendObjectAdv {
 			
 			oos.close();
 			client.close();
-			System.out.println("Client connected: " + client.isConnected());
+			System.out.println("Client connected: " + client.isClosed());
 			server.close();
 			System.out.println("Server closed: " + server.isClosed());
 			
