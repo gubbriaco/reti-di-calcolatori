@@ -1,8 +1,10 @@
-package send_receive_object;
+package send_receive_object.classic;
 
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+
+import send_receive_object.Studente;
 
 public class SendObject {
 	
