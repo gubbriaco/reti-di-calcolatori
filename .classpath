@@ -6,5 +6,7 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="src" path="codice-sorgente"/>
+	<classpathentry kind="src" path="appelli"/>
+	<classpathentry kind="src" path="esempi"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

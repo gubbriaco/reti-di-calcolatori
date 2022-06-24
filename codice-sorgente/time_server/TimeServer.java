@@ -15,8 +15,7 @@ public class TimeServer {
 			@SuppressWarnings("resource")
 			Socket socket = new Socket("ntp1.inrim.it", 13);
 			
-			BufferedReader br = new BufferedReader(new InputStreamReader(
-					socket.getInputStream()));
+			BufferedReader br = new BufferedReader(new InputStreamReader( socket.getInputStream()));
 			
 			boolean more = true;
 			String line;
