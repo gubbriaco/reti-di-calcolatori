@@ -31,14 +31,15 @@ public class TimeServer {
 				
 				System.out.println("Broadcasting: " + msg);
 				
+				Thread.sleep(1000);
 			}
 			
-			socket.close();
-			System.out.println("Socket closed: " + socket.isClosed());
-			
 		}catch(Exception e) {
+			socket.close();
 			e.printStackTrace();
 		}
+		
+		socket.close();
 		
 	}
 
