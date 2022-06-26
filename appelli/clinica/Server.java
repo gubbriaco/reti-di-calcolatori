@@ -20,23 +20,14 @@ public class Server {
 	
 	private static class Medico {
 		
-		private int matricola, disponibilita;
+		private int matricola;
 		
 		public Medico(int matricola) {
 			this.matricola = matricola;
-			this.disponibilita = -1;
 		}
 		
 		public int getMatricola() {
 			return matricola;
-		}
-		
-		public int getDisponibilita() {
-			return matricola;
-		}
-		
-		public void setDisponibilita(int disponibilita) {
-			this.disponibilita = disponibilita;
 		}
 		
 	}
@@ -149,26 +140,27 @@ public class Server {
 		}
 	}
 	
-	private int mediciZero = 0, mediciUno = 0;
 	
-	private boolean verificaDisponibilita(int esameRichiesto) {
-		boolean esameDisponibile = false;
+	private synchronized boolean verificaDisponibilita(int esameRichiesto) {
 		
-		if(esami.get(esameRichiesto).getDisponibilita() == -1) {
-			if(mediciZero < mediciUno) {
-				esami.get(esameRichiesto).setDisponibilita(0);
-				mediciZero++;
-				esameDisponibile = true;
+		Set<Esame> keyEsami = esami.keySet();
+		Iterator<Esame> it = keyEsami.iterator();
+		int pos = 0;
+		while(it.hasNext()) {
+			if(pos == esameRichiesto) {
+				Esame esame = it.next();
+				
+				if(esame.getPostiDisponibili() == 20)
+					return false;
+				else {
+					esame.aggiungiNuovoPaziente();
+					return true;
+				}
 			}
-			else {
-				esami.get(esameRichiesto).setDisponibilita(1);
-				mediciUno++;
-				esameDisponibile = true;
-			}
+			Esame esame = it.next();
+			pos++;
 		}
-		
-		
-		return esameDisponibile;
+		return false;
 	}
 	
 	public static void main(String...strings) throws IOException {
