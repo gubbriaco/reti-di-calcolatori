@@ -57,6 +57,7 @@ public class Server {
 				
 				pw_fuori_orario = new ObjectOutputStream(paziente.getOutputStream());
 				pw_fuori_orario.writeObject( servizio_non_disponibile );
+				pw_fuori_orario.flush();
 			
 			pw_fuori_orario.close();
 			paziente.close();
@@ -110,6 +111,7 @@ public class Server {
 				progressivo_esame = prenotazione_effettuata.getPazienti().indexOf(prenotazione) + 1;
 				prenotazione_da_inviare = codiceEsame + " " + progressivo_esame + " " + prenotazione_effettuata.getMatricola();
 				pw_prenotazione.writeObject(prenotazione_da_inviare);	
+				pw_prenotazione.flush();
 			}
 			else {
 				
@@ -119,6 +121,7 @@ public class Server {
 						prenotazione_effettuata.getPazientiInAttesa().indexOf(prenotazione) + 1;
 				prenotazione_da_inviare = codiceEsame + " " + progressivo_esame + " " +  prenotazione_effettuata.getMatricola();
 				pw_prenotazione.writeObject(prenotazione_da_inviare);
+				pw_prenotazione.flush();
 				
 			}
 			
@@ -181,14 +184,14 @@ public class Server {
 					ack_annullamento_prenotazione = "------- PRENOTAZIONE ANNULLATA -------";
 					pw_annullamento_prenotazione = new ObjectOutputStream(paziente_annullare_prenotazione.getOutputStream());
 					pw_annullamento_prenotazione.writeObject(ack_annullamento_prenotazione);
-					
+					pw_annullamento_prenotazione.flush();
 				}
 				else {
 					
 					ack_annullamento_prenotazione = "*-*-*-*-* ERRORE *-*-*-* prenotazione NON annullata";
 					pw_annullamento_prenotazione = new ObjectOutputStream(paziente_annullare_prenotazione.getOutputStream());
 					pw_annullamento_prenotazione.writeObject(ack_annullamento_prenotazione);
-					
+					pw_annullamento_prenotazione.flush();
 				}
 				
 			}
@@ -197,7 +200,7 @@ public class Server {
 				ack_annullamento_prenotazione = "%%%%%%% ERRORE %%%%%%%";
 				pw_annullamento_prenotazione = new ObjectOutputStream(paziente_annullare_prenotazione.getOutputStream());
 				pw_annullamento_prenotazione.writeObject(ack_annullamento_prenotazione);
-				
+				pw_annullamento_prenotazione.flush();
 			}
 			
 		}catch(IOException | ClassNotFoundException e) {

@@ -46,6 +46,7 @@ public class Paziente extends Thread {
 			int codice_esame = random.nextInt(1, 5);
 			prenotazione = codice_esame + " " + this.matricola;
 			pw_prenotazione.writeObject(prenotazione);
+			pw_prenotazione.flush();
 			
 			@SuppressWarnings("resource")
 			Scanner scanner = new Scanner(System.in);
@@ -57,6 +58,7 @@ public class Paziente extends Thread {
 			pw_annullamento_prenotazione = new ObjectOutputStream(server_annullare_prenotazione.getOutputStream());
 			annullamento_prenotazione = line;
 			pw_annullamento_prenotazione.writeObject(annullamento_prenotazione);
+			pw_annullamento_prenotazione.flush();
 			
 			br_annullamento_prenotazione = new ObjectInputStream(server_annullare_prenotazione.getInputStream());
 			ack_annullamento_prenotazione = (String) br_annullamento_prenotazione.readObject();
