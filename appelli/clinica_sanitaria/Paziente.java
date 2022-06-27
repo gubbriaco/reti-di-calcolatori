@@ -23,14 +23,14 @@ public class Paziente extends Thread {
 	
 	private int TCP_PORT_PRENOTAZIONE = 3000;
 	private Socket server;
-	private ObjectOutputStream pw_prenotazione;
+	private ObjectOutputStream oos_prenotazione;
 	private String prenotazione;
 	
 	private int TCP_PORT_ANNULLAMENTO_PRENOTAZIONE = 4000;
 	private Socket server_annullare_prenotazione;
-	private ObjectOutputStream pw_annullamento_prenotazione;
+	private ObjectOutputStream oos_annullamento_prenotazione;
 	private String annullamento_prenotazione;
-	private ObjectInputStream br_annullamento_prenotazione;
+	private ObjectInputStream ois_annullamento_prenotazione;
 	private String ack_annullamento_prenotazione;
 
 	
@@ -41,12 +41,12 @@ public class Paziente extends Thread {
 			server =  new Socket("localhost", TCP_PORT_PRENOTAZIONE);
 			System.out.println(server.toString());
 			
-			pw_prenotazione = new ObjectOutputStream(server.getOutputStream());
+			oos_prenotazione = new ObjectOutputStream(server.getOutputStream());
 			Random random = new Random();
 			int codice_esame = random.nextInt(1, 5);
 			prenotazione = codice_esame + " " + this.matricola;
-			pw_prenotazione.writeObject(prenotazione);
-			pw_prenotazione.flush();
+			oos_prenotazione.writeObject(prenotazione);
+			oos_prenotazione.flush();
 			
 			@SuppressWarnings("resource")
 			Scanner scanner = new Scanner(System.in);
@@ -55,13 +55,13 @@ public class Paziente extends Thread {
 			server_annullare_prenotazione = new Socket("localhost", TCP_PORT_ANNULLAMENTO_PRENOTAZIONE);
 			System.out.println(server_annullare_prenotazione.toString());
 			
-			pw_annullamento_prenotazione = new ObjectOutputStream(server_annullare_prenotazione.getOutputStream());
+			oos_annullamento_prenotazione = new ObjectOutputStream(server_annullare_prenotazione.getOutputStream());
 			annullamento_prenotazione = line;
-			pw_annullamento_prenotazione.writeObject(annullamento_prenotazione);
-			pw_annullamento_prenotazione.flush();
+			oos_annullamento_prenotazione.writeObject(annullamento_prenotazione);
+			oos_annullamento_prenotazione.flush();
 			
-			br_annullamento_prenotazione = new ObjectInputStream(server_annullare_prenotazione.getInputStream());
-			ack_annullamento_prenotazione = (String) br_annullamento_prenotazione.readObject();
+			ois_annullamento_prenotazione = new ObjectInputStream(server_annullare_prenotazione.getInputStream());
+			ack_annullamento_prenotazione = (String) ois_annullamento_prenotazione.readObject();
 			System.out.println(ack_annullamento_prenotazione);
 			
 		}catch(IOException | ClassNotFoundException e) {

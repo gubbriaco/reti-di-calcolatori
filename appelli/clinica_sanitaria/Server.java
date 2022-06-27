@@ -33,7 +33,7 @@ public class Server {
 	
 	private static int TCP_PORT_FUORI_ORARIO = 3000;
 	private ServerSocket server_fuori_orario;
-	private ObjectOutputStream pw_fuori_orario;
+	private ObjectOutputStream oos_fuori_orario;
 	private static String servizio_non_disponibile = "service not available";
 	
 	private void init() {
@@ -50,16 +50,17 @@ public class Server {
 		
 		while( !server_attivo ) {
 			try {
-			server_fuori_orario = new ServerSocket( TCP_PORT_FUORI_ORARIO );
+				
+				server_fuori_orario = new ServerSocket( TCP_PORT_FUORI_ORARIO );
 				System.out.println(server_fuori_orario.toString());
 				paziente = server_fuori_orario.accept();
 				System.out.println(paziente.toString());
 				
-				pw_fuori_orario = new ObjectOutputStream(paziente.getOutputStream());
-				pw_fuori_orario.writeObject( servizio_non_disponibile );
-				pw_fuori_orario.flush();
+				oos_fuori_orario = new ObjectOutputStream(paziente.getOutputStream());
+				oos_fuori_orario.writeObject( servizio_non_disponibile );
+				oos_fuori_orario.flush();
 			
-			pw_fuori_orario.close();
+			oos_fuori_orario.close();
 			paziente.close();
 			server_fuori_orario.close();
 		
@@ -73,13 +74,13 @@ public class Server {
 	private static int TCP_PORT_PRENOTAZIONE = 3000;
 	private ServerSocket server_prenotazione;
 	private Socket paziente;
-	private ObjectInputStream br_prenotazione;
+	private ObjectInputStream ois_prenotazione;
 	private String esame_richiesto;
 	private int codice_esame_richiesto;
 	private int matricola_paziente;
 	private Medico prenotazione_effettuata;
 	private int progressivo_esame;
-	private ObjectOutputStream pw_prenotazione;
+	private ObjectOutputStream oos_prenotazione;
 	private String prenotazione_da_inviare;
 	private Prenotazione prenotazione;
 	
@@ -91,8 +92,8 @@ public class Server {
 			paziente = server_prenotazione.accept();
 			System.out.println(paziente.toString());
 			
-			br_prenotazione = new ObjectInputStream(paziente.getInputStream());
-			esame_richiesto = (String)br_prenotazione.readObject();
+			ois_prenotazione = new ObjectInputStream(paziente.getInputStream());
+			esame_richiesto = (String)ois_prenotazione.readObject();
 			StringTokenizer st = new StringTokenizer(esame_richiesto);
 			String codiceEsame = st.nextToken();
 			@SuppressWarnings("unused")
@@ -106,22 +107,22 @@ public class Server {
 			/** prenotazione avvenuta correttamente */
 			if( !prenotazione_effettuata.pazienteInAttesa() ) {
 				
-				pw_prenotazione = new ObjectOutputStream(paziente.getOutputStream());
+				oos_prenotazione = new ObjectOutputStream(paziente.getOutputStream());
 				prenotazione = new Prenotazione(codice_esame_richiesto, matricola_paziente);
 				progressivo_esame = prenotazione_effettuata.getPazienti().indexOf(prenotazione) + 1;
 				prenotazione_da_inviare = codiceEsame + " " + progressivo_esame + " " + prenotazione_effettuata.getMatricola();
-				pw_prenotazione.writeObject(prenotazione_da_inviare);	
-				pw_prenotazione.flush();
+				oos_prenotazione.writeObject(prenotazione_da_inviare);	
+				oos_prenotazione.flush();
 			}
 			else {
 				
-				pw_prenotazione = new ObjectOutputStream(paziente.getOutputStream());
+				oos_prenotazione = new ObjectOutputStream(paziente.getOutputStream());
 				prenotazione = new Prenotazione(codice_esame_richiesto, matricola_paziente);
 				progressivo_esame = prenotazione_effettuata.getPazienti().size() + 
 						prenotazione_effettuata.getPazientiInAttesa().indexOf(prenotazione) + 1;
 				prenotazione_da_inviare = codiceEsame + " " + progressivo_esame + " " +  prenotazione_effettuata.getMatricola();
-				pw_prenotazione.writeObject(prenotazione_da_inviare);
-				pw_prenotazione.flush();
+				oos_prenotazione.writeObject(prenotazione_da_inviare);
+				oos_prenotazione.flush();
 				
 			}
 			
@@ -157,9 +158,9 @@ public class Server {
 	private int PORT_TCP_ANNULLAMENTO_PRENOTAZIONE = 4000;
 	private ServerSocket server_annullare_prenotazione;
 	private Socket paziente_annullare_prenotazione;
-	private ObjectInputStream br_annullamento_prenotazione;
+	private ObjectInputStream ois_annullamento_prenotazione;
 	private String annulla_prenotazione;
-	private ObjectOutputStream pw_annullamento_prenotazione;
+	private ObjectOutputStream oos_annullamento_prenotazione;
 	private String ack_annullamento_prenotazione;
 	
 	private void init_annullamento_prenotazione() {
@@ -172,8 +173,8 @@ public class Server {
 			paziente_annullare_prenotazione = server_annullare_prenotazione.accept();
 			System.out.println(paziente_annullare_prenotazione.toString());
 			
-			br_annullamento_prenotazione = new ObjectInputStream(paziente_annullare_prenotazione.getInputStream());
-			annulla_prenotazione = (String)br_annullamento_prenotazione.readObject();
+			ois_annullamento_prenotazione = new ObjectInputStream(paziente_annullare_prenotazione.getInputStream());
+			annulla_prenotazione = (String)ois_annullamento_prenotazione.readObject();
 		
 			if( annulla_prenotazione.toUpperCase().contains( "ANNULLARE" ) ||  annulla_prenotazione.toUpperCase().contains( "ANNULLA" ) ) {
 				
@@ -182,25 +183,25 @@ public class Server {
 				if( prenotazione_annullata ) {
 					
 					ack_annullamento_prenotazione = "------- PRENOTAZIONE ANNULLATA -------";
-					pw_annullamento_prenotazione = new ObjectOutputStream(paziente_annullare_prenotazione.getOutputStream());
-					pw_annullamento_prenotazione.writeObject(ack_annullamento_prenotazione);
-					pw_annullamento_prenotazione.flush();
+					oos_annullamento_prenotazione = new ObjectOutputStream(paziente_annullare_prenotazione.getOutputStream());
+					oos_annullamento_prenotazione.writeObject(ack_annullamento_prenotazione);
+					oos_annullamento_prenotazione.flush();
 				}
 				else {
 					
 					ack_annullamento_prenotazione = "*-*-*-*-* ERRORE *-*-*-* prenotazione NON annullata";
-					pw_annullamento_prenotazione = new ObjectOutputStream(paziente_annullare_prenotazione.getOutputStream());
-					pw_annullamento_prenotazione.writeObject(ack_annullamento_prenotazione);
-					pw_annullamento_prenotazione.flush();
+					oos_annullamento_prenotazione = new ObjectOutputStream(paziente_annullare_prenotazione.getOutputStream());
+					oos_annullamento_prenotazione.writeObject(ack_annullamento_prenotazione);
+					oos_annullamento_prenotazione.flush();
 				}
 				
 			}
 			else {
 				
 				ack_annullamento_prenotazione = "%%%%%%% ERRORE %%%%%%%";
-				pw_annullamento_prenotazione = new ObjectOutputStream(paziente_annullare_prenotazione.getOutputStream());
-				pw_annullamento_prenotazione.writeObject(ack_annullamento_prenotazione);
-				pw_annullamento_prenotazione.flush();
+				oos_annullamento_prenotazione = new ObjectOutputStream(paziente_annullare_prenotazione.getOutputStream());
+				oos_annullamento_prenotazione.writeObject(ack_annullamento_prenotazione);
+				oos_annullamento_prenotazione.flush();
 			}
 			
 		}catch(IOException | ClassNotFoundException e) {
