@@ -10,274 +10,240 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
-import java.util.concurrent.Semaphore;
+import java.util.Random;
+import java.util.StringTokenizer;
+
+import clinica_sanitaria.Medico.Prenotazione;
 
 public class Server {
-
-	private LinkedList<Statistica> statistiche;
 	
-	private boolean attivo = false;
-	
-	private LinkedList<Medico> medici;
 	private LinkedList<Esame> esami;
-	private int numeroEsamiTotali;
+	private LinkedList<Medico> medici;
 	
-	private Semaphore mutex = new Semaphore(1);
-	private Semaphore[] esamiSem;
+	private boolean server_attivo;
 	
-	private Medico medico1, medico2;
-	
-	public Server(int numeroEsamiTotali) {
-		attivo = true;
+	public Server(LinkedList<Esame> esami, LinkedList<Medico> medici) {
+		this.esami = esami;
+		this.medici = medici;
 		
-		this.numeroEsamiTotali = numeroEsamiTotali;
+		server_attivo = true;
 		
-		medici = new LinkedList<>();
-		esami = new LinkedList<>();
-		
-		for(int i=0;i<numeroEsamiTotali;++i)
-			esami.set(i, new Esame(i+1));
-		
-		esamiSem = new Semaphore[numeroEsamiTotali];
-		for(int i=0;i<esamiSem.length;++i)
-			esamiSem[i] = new Semaphore(0);
-		
-		statistiche = new LinkedList<>();
-		
-		medici.add(new Medico(0)); 
-		medici.add(new Medico(1));
-		medico1 = medici.get(0); 
-		medico2 = medici.get(1);
+		init();
 	}
 	
-	private static class Statistica {
-		
-		private Esame esame;
-		private Medico medico1, medico2;
-		
-		public Statistica(Esame esame, Medico medico1, Medico medico2) {
-			this.esame = esame;
-			this.medico1 = medico1;
-			this.medico2 = medico2;
-		}
-		
-		@Override public String toString() {
-			return esame.getCodice() + "\n" + esame.pazienti.size() + "\n" +
-					medico1.pazienti.toString() + "\n" + medico2.pazienti.toString();
-		}
-		
-		
-	}
 	
-	private static class Esame {
+	private static int TCP_PORT_FUORI_ORARIO = 3000;
+	private ServerSocket server_fuori_orario;
+	private PrintWriter pw_fuori_orario;
+	private static String servizio_non_disponibile = "service not available";
+	
+	private void init() {
 		
-		private int codice;
-		private int postiDisponibili;
-		private LinkedList<Paziente> pazienti;
+		while( server_attivo ) {
 		
-		private static int MAX_PAZIENTI = 20;
-		
-		public Esame(int codice) {
-			this.codice = codice;
-			pazienti = new LinkedList<>();
+			init_prenotazione();
+			
+			init_annullamento_prenotazione();
+			
+//			init_direzione();
+			
 		}
 		
-		public int getCodice() {
-			return codice;
-		}
+		while( !server_attivo ) {
+			try {
+			server_fuori_orario = new ServerSocket( TCP_PORT_FUORI_ORARIO );
+				System.out.println(server_fuori_orario.toString());
+				paziente = server_fuori_orario.accept();
+				System.out.println(paziente.toString());
+				
+				pw_fuori_orario = new PrintWriter(paziente.getOutputStream());
+				pw_fuori_orario.println( servizio_non_disponibile );
+			
+			pw_fuori_orario.close();
+			paziente.close();
+			server_fuori_orario.close();
 		
-		public int getPostiDisponibili() {
-			return postiDisponibili;
-		}
-		
-		public synchronized void aggiungiPazienteInCoda(Paziente paziente) {
-			pazienti.addLast(paziente);
-			postiDisponibili--;
-		}
-		
-		public synchronized void rimuoviPazienteInCoda(Paziente paziente) {
-			pazienti.remove(paziente);
-			postiDisponibili++;
+			}catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 		
 	}
 	
+	private static int TCP_PORT_PRENOTAZIONE = 3000;
+	private ServerSocket server_prenotazione;
+	private Socket paziente;
+	private BufferedReader br_prenotazione;
+	private String esame_richiesto;
+	private int codice_esame_richiesto;
+	private int matricola_paziente;
+	private Medico prenotazione_effettuata;
+	private int progressivo_esame;
+	private PrintWriter pw_prenotazione;
+	private String prenotazione;
 	
-	private static class Medico {
-		
-		private int matricola;
-		private LinkedList<Paziente> pazienti;
-		
-		private static int MAX_PAZIENTI = 10;
-		
-		public Medico(int matricola) {
-			this.matricola = matricola;
-			pazienti = new LinkedList<>();
-		}
-		
-		public int getMatricola() {
-			return matricola;
-		}
-		
-		public synchronized void curaPaziente(Paziente paziente) {
-			pazienti.add(paziente);
-		}
-		
-		public synchronized void nonCurarePiuPaziente(Paziente paziente) {
-			pazienti.remove(paziente);
-		}
-		
-	}
-	
-	private static int portaTCP_PRENOTAZIONI = 3000, portaTCP_ANNULLARE_PRENOTAZIONI = 4000;
-	private ServerSocket serverPrenotazioni, serverAnnullarePrenotazioni;
-	private Socket pazienteCheVuolePrenotare, pazienteCheVuoleAnnullarePrenotazione;
-	private BufferedReader brPrenotazioni, brAnnullarePrenotazioni;
-	private PrintWriter pwPrenotazioni, pwAnnullarePrenotazioni;
-	
-	public void init() {
+	private void init_prenotazione() {
 		try {
-
-			serverPrenotazioni = new ServerSocket(portaTCP_PRENOTAZIONI);
-			System.out.println(serverPrenotazioni.toString());
 			
-			serverAnnullarePrenotazioni = new ServerSocket(portaTCP_ANNULLARE_PRENOTAZIONI);
-			System.out.println(serverAnnullarePrenotazioni.toString());
+			server_prenotazione = new ServerSocket( TCP_PORT_PRENOTAZIONE );
+			System.out.println(server_prenotazione.toString());
+			paziente = server_prenotazione.accept();
+			System.out.println(paziente.toString());
 			
+			br_prenotazione = new BufferedReader(new InputStreamReader(paziente.getInputStream()));
+			esame_richiesto = br_prenotazione.readLine();
+			StringTokenizer st = new StringTokenizer(esame_richiesto);
+			String codiceEsame = st.nextToken();
+			@SuppressWarnings("unused")
+			String vuota = st.nextToken();
+			String matricolaPaziente = st.nextToken();
+			codice_esame_richiesto = Integer.valueOf(codiceEsame);
+			matricola_paziente = Integer.valueOf( matricolaPaziente );
 			
-			while(attivo) {
-
-				pazienteCheVuolePrenotare = serverPrenotazioni.accept();
-				System.out.println(pazienteCheVuolePrenotare.toString());
-				brPrenotazioni = new BufferedReader(new InputStreamReader(pazienteCheVuolePrenotare.getInputStream()));
-				String esameRichiestoStr = brPrenotazioni.readLine();
-				int esameRichiesto = Integer.valueOf(esameRichiestoStr);
+			prenotazione_effettuata = prenota( codice_esame_richiesto, matricola_paziente );
+			
+			/** prenotazione avvenuta correttamente */
+			if( !prenotazione_effettuata.pazienteInAttesa() ) {
 				
-				LinkedList<Object> prenotazione = verificaDisponibilita(esameRichiesto);
-				
-				if(!((boolean)prenotazione.get(0))) {
-					esamiSem[esameRichiesto].acquire();
-					esami.get(esameRichiesto).aggiungiPazienteInCoda(  );
-					
-					boolean postoLiberato = false, chiusuraSocket = false;
-					int minuti = 0, UN_ORA = 60;
-					while(!postoLiberato || !chiusuraSocket) {
-						if(minuti==UN_ORA) {
-							chiusuraSocket = true;
-							pazienteCheVuolePrenotare.close();
-						}
-						for(int i=0;i<esami.size();++i) {
-							if(esami.get(i).pazienti.getFirst().finished) {
-								System.out.println("Il " + esami.get(i).pazienti.getFirst() + " ha terminato l'esame medico.");
-								esami.get(i).pazienti.removeFirst();
-								esamiSem[i].release();
-								postoLiberato = true;
-								pwPrenotazioni = new PrintWriter(pazienteCheVuolePrenotare.getOutputStream());
-								Esame esame = (Esame)prenotazione.get(1);
-								Medico medico = (Medico)prenotazione.get(2);
-								String stringaPrenotazione = esameRichiesto + " " + 
-										(esame.MAX_PAZIENTI-esame.postiDisponibili) + " " + 
-										 medico.getMatricola();
-								pwPrenotazioni.println(stringaPrenotazione);
-							}
-						}
-						minuti++;
-					}
-				}
-				else {
-					System.out.println("Richiesta esame accettata.");
-					pwPrenotazioni = new PrintWriter(pazienteCheVuolePrenotare.getOutputStream());
-					Esame esame = (Esame)prenotazione.get(1);
-					Medico medico = (Medico)prenotazione.get(2);
-					String stringaPrenotazione = esameRichiesto + " " + 
-							(esame.MAX_PAZIENTI-esame.postiDisponibili) + " " + 
-							 medico.getMatricola();
-					pwPrenotazioni.println(stringaPrenotazione);
-				}
-				
-				pwPrenotazioni = new PrintWriter(pazienteCheVuolePrenotare.getOutputStream());
-				pwPrenotazioni.println("****** service not available ******");
-				
-				
-				pazienteCheVuoleAnnullarePrenotazione = serverAnnullarePrenotazioni.accept();
-				System.out.println(pazienteCheVuoleAnnullarePrenotazione.toString());
-				brAnnullarePrenotazioni = new BufferedReader(new InputStreamReader(pazienteCheVuoleAnnullarePrenotazione.getInputStream()));
-				String esameDaAnnullare = brAnnullarePrenotazioni.readLine();
-				int codiceEsameDaAnnullare = Integer.valueOf(esameDaAnnullare);
-				esami.remove(codiceEsameDaAnnullare).rimuoviPazienteInCoda(  );
-				esami.remove(codiceEsameDaAnnullare);
-				
-				pwAnnullarePrenotazioni = new PrintWriter(pazienteCheVuoleAnnullarePrenotazione.getOutputStream());
-				pwAnnullarePrenotazioni.println("------- ESAME ANNULLATO COME RICHIESTO -------");
+				pw_prenotazione = new PrintWriter(paziente.getOutputStream());
+				progressivo_esame = prenotazione_effettuata.getPazienti().indexOf(matricola_paziente) + 1;
+				prenotazione = codiceEsame + " " + progressivo_esame + " " + prenotazione_effettuata.getMatricola();
+				pw_prenotazione.println(prenotazione);
 				
 			}
-
-			brPrenotazioni.close(); brAnnullarePrenotazioni.close();
-			pwPrenotazioni.close(); pwAnnullarePrenotazioni.close();
-			pazienteCheVuolePrenotare.close(); pazienteCheVuoleAnnullarePrenotazione.close();
-			
-			
-			Statistica statistica;
-			for(int i=0;i<esami.size();++i) {
-				statistica = new Statistica( esami.get(i), medico1, medico2 );
-				statistiche.add(statistica);
-			}
-			
-			int portaDirezione = 5000;
-			DatagramSocket direzione = new DatagramSocket(5000);
-			InetAddress local = InetAddress.getByName("localhost");
-			DatagramPacket statisticaPacket;
-			
-			for(int i=0;i<statistiche.size();++i) {
-				byte[] buf = new byte[256];
-				buf = statistiche.get(i).toString().getBytes();
-				statisticaPacket = new DatagramPacket(buf, buf.length, local, portaDirezione);
-				direzione.send(statisticaPacket);
+			else {
+				
+				pw_prenotazione = new PrintWriter(paziente.getOutputStream());
+				progressivo_esame = prenotazione_effettuata.getPazienti().size() + 
+						prenotazione_effettuata.getPazientiInAttesa().indexOf(matricola_paziente) + 1;
+				prenotazione = codiceEsame + " " + progressivo_esame + " " +  prenotazione_effettuata.getMatricola();
+				pw_prenotazione.println(prenotazione);
 				
 			}
 			
-			
-		}catch(IOException | InterruptedException e) {
+		}catch(IOException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	private LinkedList<Object> verificaDisponibilita(int esameRichiesto) {
-		LinkedList<Object> prenotazione = new LinkedList<>();
+	/**
+	 * Restituisce -1 se la prenotazione non &egrave avvenuta altrimenti restituisce il
+	 * progressivo della prenotazione.
+	 * @param codice_esame_richiesto
+	 * @param matricola_paziente
+	 * @return Progressivo prenotazione
+	 */
+	private Medico prenota(int codice_esame_richiesto, int matricola_paziente) {
 		
-		Esame esame = esami.get(esameRichiesto);
-		if(esame.getPostiDisponibili()==esame.MAX_PAZIENTI) {
-			prenotazione.add(false);
-			prenotazione.add(esame);
-			prenotazione.add(medico1);
-		}
-
-		if(medico1.pazienti.size()<medico2.MAX_PAZIENTI) {
-
-			esamiSem[esameRichiesto].acquire();
-			medico1.curaPaziente(  );
-			prenotazione.add(true);
-			prenotazione.add(esame);
-			prenotazione.add(medico1);
-		}
-		else {
-
-			esamiSem[esameRichiesto].acquire();
-			medico2.curaPaziente(  );
-			prenotazione.add(true);
-			prenotazione.add(esame);
-			prenotazione.add(medico2);
-		}
-		
-		return prenotazione;
+		for(int i=0;i<esami.size();++i) 
+			if( (i+1) == codice_esame_richiesto ) 
+				for( int j=0;j<medici.size();++j ) 
+					if(medici.get(i).possoAccettareAltriPazienti()) {
+						Medico medico = medici.get(i);
+						Prenotazione prenotazione = new Prenotazione(codice_esame_richiesto, matricola_paziente);
+						medico.aggiungiPaziente( prenotazione );
+						return medico;
+					}
+		Random random = new Random();
+		int matricolaMedico = random.nextInt(1, medici.size()+1);
+		return new Medico(matricolaMedico);
 	}
+	
+	
+	private int PORT_UDP_ANNULLAMENTO_PRENOTAZIONE = 4000;
+	private DatagramSocket server;
+	private byte[] buffer;
+	private DatagramPacket annullamento_prenotazione;
+	private InetAddress address;
+	
+	private void init_annullamento_prenotazione() {
+		
+		try {
+			
+			server = new DatagramSocket( PORT_UDP_ANNULLAMENTO_PRENOTAZIONE );
+			System.out.println(server.toString());
+			
+			buffer = new byte[256];
+			annullamento_prenotazione = new DatagramPacket(buffer, buffer.length);
+			server.receive(annullamento_prenotazione);
+			address = annullamento_prenotazione.getAddress();
+					
+			String annullare_prenotazione = annullamento_prenotazione.toString();
+			if( annullare_prenotazione.toUpperCase().contains( "ANNULLARE" ) ||  annullare_prenotazione.toUpperCase().contains( "ANNULLA" ) ) {
+				
+				boolean prenotazione_annullata = annullare_prenotazione_paziente( annullare_prenotazione );
+				
+				if( prenotazione_annullata ) {
+					
+					String ack = "------- PRENOTAZIONE ANNULLATA -------";
+					buffer = ack.getBytes();
+					 
+					annullamento_prenotazione = new DatagramPacket(buffer, buffer.length, address, PORT_UDP_ANNULLAMENTO_PRENOTAZIONE);
+					server.send(annullamento_prenotazione);
+					
+				}
+				else {
+					
+					String ack = "*-*-*-*-* ERRORE *-*-*-* prenotazione NON annullata";
+					buffer = ack.getBytes();
+					 
+					annullamento_prenotazione = new DatagramPacket(buffer, buffer.length, address, PORT_UDP_ANNULLAMENTO_PRENOTAZIONE);
+					server.send(annullamento_prenotazione);
+					
+				}
+				
+			}
+			else {
+				String ack = "%%%%%%% ERRORE %%%%%%%";
+				buffer = ack.getBytes();
+				 
+				annullamento_prenotazione = new DatagramPacket(buffer, buffer.length, address, PORT_UDP_ANNULLAMENTO_PRENOTAZIONE);
+				server.send(annullamento_prenotazione);
+			}
+			
+		}catch(IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+	private boolean annullare_prenotazione_paziente(String annullare_prenotazione) {
+		boolean prenotazione_annullata = false;
+		
+		StringTokenizer st = new StringTokenizer(annullare_prenotazione);
+		String annullare = st.nextToken();
+		String vuota = st.nextToken();
+		String codice_esame = st.nextToken();
+		int codiceEsame = Integer.valueOf(codice_esame);
+		
+		if(codiceEsame > (esami.size()+1) || codiceEsame < 0)
+			return prenotazione_annullata;
+		else
+			prenotazione_annullata = true;
+		
+		return prenotazione_annullata;
+	}
+	
+	
 	
 	
 	public static void main(String...strings) {
 		
-		Server server = new Server( 6 );
-		server.init();
+		LinkedList<Esame> esami = new LinkedList<>();
+		LinkedList<Medico> medici = new LinkedList<>();
+		
+		Esame esame1 = new Esame(1);
+		Esame esame2 = new Esame(2);
+		Esame esame3 = new Esame(3);
+		Esame esame4 = new Esame(4);
+		esami.add(esame1); esami.add(esame2); esami.add(esame3); esami.add(esame4);
+		
+		Medico medico1 = new Medico(1*100);
+		Medico medico2 = new Medico(2*100);
+		medici.add(medico1); medici.add(medico2);
+	
+		Server server = new Server(esami, medici);
 		
 	}
-	
+
 }

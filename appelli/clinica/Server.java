@@ -1,200 +1,130 @@
 package clinica;
 
-import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Set;
-
-import java.util.Iterator;
+import java.util.concurrent.Semaphore;
 
 public class Server {
-
-	/** i medici sono indicizzati nel seguente modo: -1 nessun medico assegnato == esame ancora
-	 *  non assegnato, 0 medico avente 10 esami, 1 medico avente i rimanenti 10 esami */
+	  private final Map<String , Map<String,Integer>> mediciEsami;
+	    private final Map<String , Map<String,Integer>> progressivi;
+	    private final Map<String , LinkedList<Socket>> listeAttesa;
+	    private ServerSocket server;
+	    private boolean attivo;
+	    @SuppressWarnings("unused")
+		private boolean inviato;
+	    
+	    private final Semaphore mutex;
+	    private final ServerRemove serverRemove;
+	    
+	    public Server(Map<String,Map<String,Integer>> mediciEsami){
+	        this.mediciEsami = mediciEsami;
+	        this.mutex       = new Semaphore(1,true);
+	        this.progressivi = new HashMap<>();
+	        this.listeAttesa = new HashMap<>();
+	        attivo = true;
+	        for(String esame : mediciEsami.keySet()){
+	            this.listeAttesa.put(esame,new LinkedList<>());
+	        }//for
+	        initProgressivi();
+	        initServer();
+	        this.serverRemove = new ServerRemove(this);
+	    }//costruttore
+	    
+	    private void initProgressivi(){
+	        for(String esame : mediciEsami.keySet()){
+	            Map<String,Integer> map = new HashMap<>();
+	            for(String medico : mediciEsami.get(esame).keySet()){
+	                map.put(medico,0);
+	            }
+	            progressivi.put(esame, map);
+	        }//for
+	    }//initProgressivi
+	    
+	    private void initServer(){
+	        try{
+	            this.server            = new ServerSocket(3000);
+	            System.out.println("Server on!");
+	            Date date              = new Date();
+	            Calendar calendar      = GregorianCalendar.getInstance();
+	            calendar.setTime(date);
+	            while(attivo){
+	                Socket client      = this.server.accept();
+	                System.out.println("New Client: "+client.toString());
+	                int hour           = calendar.get(Calendar.HOUR_OF_DAY);
+	                //controllo orario richiesta
+	                if(hour >= 8 && hour <= 12){
+	                    client.setSoTimeout(60*1000*60);
+	                    @SuppressWarnings("unused")
+						ClientHandler c= new ClientHandler(client,this); 
+	                }else{
+	                    inviaReport();
+	                    PrintWriter pw = new PrintWriter(client.getOutputStream(),true);
+	                    pw.println("Service Not Available");
+	                    client.close();
+	                }
+	            }//while
+	            serverRemove.setAttivo(false);
+	        }catch(IOException ex){
+	            System.out.println("Error 301 - Errore Apertura Server");
+	        }
+	    }//initServer
+	    
+	    public void inviaReport() throws SocketException, IOException{
+	        class Statistica {
+	            @SuppressWarnings("unused")
+				String esame;
+	            @SuppressWarnings("unused")
+				int    prenotazioni;
+	            @SuppressWarnings("unused")
+				int    attesa;
+	            public Statistica(String esame,int prenotazioni,int attesa){
+	                this.esame = esame;
+	                this.prenotazioni = prenotazioni;
+	                this.attesa = attesa;
+	            }
+	        }//Statistica
+	        for(String esame : mediciEsami.keySet()){
+	            int prenotazioni = 0;
+	            for(String medico : mediciEsami.get(esame).keySet()){
+	                prenotazioni += (10 - mediciEsami.get(esame).get(medico));
+	            }
+	            int attesa = listeAttesa.get(esame).size();
+	            Statistica s = new Statistica(esame,prenotazioni,attesa);
+	            DatagramSocket socket = new DatagramSocket(5000);
+	            ByteArrayOutputStream output = new ByteArrayOutputStream();
+	            ObjectOutputStream out       = new ObjectOutputStream(output);
+	            out.writeObject(s);
+	            out.flush();
+	            byte[] message               = output.toByteArray();
+	            DatagramPacket packet        = new DatagramPacket(message,message.length,InetAddress.getByName("direzione.unical.it"),5000);
+	            socket.send(packet);
+	            socket.close();
+	        }//for
+	    }//inviaReport
+	    
+	    public boolean isAttivo()  { return attivo; }//getAttivo
+	    public void setAttivo(boolean attivo){ this.attivo = attivo;}//setAttivo
+	    public Map<String, Map<String, Integer>> getMediciEsami() {return mediciEsami;}//getMediciEsami
+	    public Semaphore getMutex() { return mutex; }//getMutex
+	    public Map<String , Map<String,Integer>> getProgressivi() { return progressivi; }//getProgressivi
+	    public Map<String , LinkedList<Socket>> getListeAttesa() { return listeAttesa; }//getListeAttesa
 	
-	private static class Medico {
-		
-		private int matricola;
-		
-		public Medico(int matricola) {
-			this.matricola = matricola;
-		}
-		
-		public int getMatricola() {
-			return matricola;
-		}
-		
-	}
-	
-	private static class Esame {
-		
-		private int numeroProgressivo;
-		private int codice;
-		private int postiDisponibili;
-		
-		public Esame(int codice) {
-			numeroProgressivo = 1;
-			this.codice = codice;
-			postiDisponibili = 20;
-		}
-		
-		public int getCodice() {
-			return codice;
-		}
-		
-		public void aggiungiNuovoPaziente() {
-			numeroProgressivo++;
-			postiDisponibili--;
-		}
-		
-		public void rimuoviPrenotazione() {
-			numeroProgressivo--;
-			postiDisponibili++;
-		}
-		
-		public int getPostiDisponibili() {
-			return postiDisponibili;
-		}
-		
-		public int getNumeroProgressivo() {
-			return numeroProgressivo;
-		}
-		
-	}
-	
-	/** gli esami sono indicizzati da 0 a 19  */
-	
-	
-	private Map<Esame, Medico> esami; /** MAX 20 ESAMI TOTALI - 10 per ogni medico */
-	
-	private int oreServizio; /** dalle 8 alle 12 */
-	
-	private int portaTCPPrenotazione = 3000;
-	
-	public Server(int oreServizio) {
-		
-		esami = new HashMap<>();
-		for(int i=0;i<20;++i)
-			esami.put(new Esame(i), new Medico((i+25)*125));
-		
-		this.oreServizio = oreServizio;
-		
-		INIT_SERVER();
-	}
-	
-	private boolean attivo = true;
-	private ServerSocket server;
-	private BufferedReader br;
-	
-	private void INIT_SERVER() {
-		try {
-			server = new ServerSocket(portaTCPPrenotazione);
-			System.out.println(server.toString());
-			
-			while(attivo) {
-				
-				Socket paziente = server.accept();
-				System.out.println(paziente.toString() + " accepted");
-				
-				/** legge l'esame richiesto dal paziente */
-				br = new BufferedReader(new InputStreamReader(paziente.getInputStream()));
-				String esameRichiestoStr = br.readLine();
-				int esameRichiesto = Integer.valueOf(esameRichiestoStr);
-				boolean okEsame = verificaDisponibilita(esameRichiesto);
-				
-				if(okEsame) {
-					
-					PrintWriter pw = new PrintWriter(paziente.getOutputStream());
-					Set<Esame> keyEsami = esami.keySet();
-					Iterator<Esame> it = keyEsami.iterator();
-					int pos = 0;
-					int progressivoEsame = -1;
-					while(it.hasNext()) {
-						if(pos == esameRichiesto) {
-							Esame esame = it.next();
-							progressivoEsame = esame.getNumeroProgressivo();
-							break;
-						}
-						Esame esame = it.next();
-						pos++;
-					}
-					/** stringa di prenotazione al paziente */
-					String msg = esameRichiesto + " " + progressivoEsame + esami.get(esameRichiesto).getMatricola();
-					pw.println(msg);
-					
-				}
-				
-				
-				
-				
-			}
-			
-		}catch(IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	
-	private synchronized boolean verificaDisponibilita(int esameRichiesto) {
-		
-		Set<Esame> keyEsami = esami.keySet();
-		Iterator<Esame> it = keyEsami.iterator();
-		int pos = 0;
-		while(it.hasNext()) {
-			if(pos == esameRichiesto) {
-				Esame esame = it.next();
-				
-				if(esame.getPostiDisponibili() == 20)
-					return false;
-				else {
-					esame.aggiungiNuovoPaziente();
-					return true;
-				}
-			}
-			Esame esame = it.next();
-			pos++;
-		}
-		return false;
-	}
-	
-	public static void main(String...strings) throws IOException {
-		
-		int oreServizio = 4;
-		Server clinica = new Server(4);
-		
-		int portaTCPAnnullarePrenotazione = 4000;
-		ServerSocket server = new ServerSocket(portaTCPAnnullarePrenotazione);
-		System.out.println(server.toString());
-
-		while(clinica.attivo) {
-			Socket paziente = server.accept();
-			BufferedReader br = new BufferedReader(new InputStreamReader(paziente.getInputStream()));
-			
-			int codiceEsameDaAnnullare = Integer.valueOf(br.readLine());
-			
-			Set<Esame> keyEsami = clinica.esami.keySet();
-			Iterator<Esame> it = keyEsami.iterator();
-			int pos = 0;
-			while(it.hasNext()) {
-				if(pos == codiceEsameDaAnnullare) {
-					Esame esame = it.next();
-					int nrProgressivo = esame.getNumeroProgressivo();
-					esame.rimuoviPrenotazione();
-					break;
-				}
-				Esame esame = it.next();
-				pos++;
-			}
-		}
-		
-		
-		
-	}
-
+	    
+	   
+	    
 }
+

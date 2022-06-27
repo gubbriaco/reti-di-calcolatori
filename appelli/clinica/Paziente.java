@@ -1,70 +1,60 @@
-package clinica;
+package clinica_sanitaria;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.util.Random;
 import java.util.Scanner;
 
 public class Paziente {
 	
-	private int matricola;
+
+	private static int portaTCP_PRENOTAZIONI = 3000, portaTCP_ANNULLARE_PRENOTAZIONI = 4000;
+	private ServerSocket pazienteCheVuolePrenotare, pazienteCheVuoleAnnullarePrenotazione;
+	private Socket serverPrenotazioni, serverAnnullarePrenotazioni;
+	private BufferedReader brPrenotazioni, brAnnullarePrenotazioni;
+	private PrintWriter pwPrenotazioni, pwAnnullarePrenotazioni;
 	
-	public Paziente(int matricola) {
-		this.matricola = matricola;
+	public Paziente() {
 		
-		INIT_CLIENT();
+		
 	}
 	
-	private Socket server;
-	private int portaTCPPrenotazione = 3000;
-	private Random random;
-	private PrintWriter pw;
-	private int codiceEsame;
-	
-	private void INIT_CLIENT() {
-		
+	public void init() {
 		try {
 			
-			server = new Socket("localhost", portaTCPPrenotazione);
-			random = new Random();
-			codiceEsame = random.nextInt(0, 5);
-			String esameRichiesto = String.valueOf(codiceEsame);
-			
-			pw = new PrintWriter(server.getOutputStream());
-			pw.println(esameRichiesto);
-			System.out.println(this.toString() + " ha richiesto l'esame " + esameRichiesto);
+			pazienteCheVuolePrenotare = new ServerSocket(portaTCP_PRENOTAZIONI);
+			System.out.println(serverPrenotazioni.toString());
 			
 			
+			
+			Scanner sc = new Scanner(System.in);
+			String line = sc.nextLine();
+			
+			if(line.toUpperCase().equals("ANNULLA") || line.toUpperCase().equals("ANNULLARE") ) {
+				
+				pazienteCheVuoleAnnullarePrenotazione = new ServerSocket(portaTCP_ANNULLARE_PRENOTAZIONI);
+				System.out.println(serverAnnullarePrenotazioni.toString());
+				
+				serverAnnullarePrenotazioni = pazienteCheVuoleAnnullarePrenotazione.accept();
+				pwAnnullarePrenotazioni = new PrintWriter(serverAnnullarePrenotazioni.getOutputStream());
+				pwAnnullarePrenotazioni.println("ANNULLARE");
+				
+				
+			}
 			
 		}catch(IOException e) {
 			e.printStackTrace();
 		}
-		
 	}
-
 	
-	public static void main(String...strings) throws UnknownHostException, IOException {
+	
+	public static void main(String...strings) {
 		
-		Random random = new Random();
-		int matricola = random.nextInt();
-		Paziente paziente = new Paziente(matricola);
+		Paziente paziente = new Paziente();
+		paziente.init();
 		
-		Scanner sc = new Scanner(System.in);
-		String str = sc.nextLine();
-		
-		Socket server;
-		int portaTCPAnnullarePrenotazione = 4000;
-		PrintWriter pw;
-		if(str.toUpperCase().equals("ANNULLA")) {
-			server = new Socket("localhost", portaTCPAnnullarePrenotazione);
-			System.out.println(server.toString());
-			pw = new PrintWriter(server.getOutputStream());
-			pw.println("" + paziente.codiceEsame);
-			System.out.println(paziente.toString() + " ha annullato l'esame con codice" + paziente.codiceEsame);
-			
-		}
 	}
 	
 }
