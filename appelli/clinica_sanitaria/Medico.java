@@ -30,13 +30,13 @@ public class Medico {
 	
 	private static int MAX_PAZIENTI = 10;
 	
-	private LinkedList<Prenotazione> pazienti;
-	private LinkedList<Prenotazione> pazientiInAttesa;
+	private LinkedList<Prenotazione> prenotazioni;
+	private LinkedList<Prenotazione> prenotazioniInAttesa;
 	
 	public Medico(int matricola) {
 		this.matricola = matricola;
-		pazienti = new LinkedList<>();
-		pazientiInAttesa = new LinkedList<>();
+		prenotazioni = new LinkedList<>();
+		prenotazioniInAttesa = new LinkedList<>();
 	}
 	
 	public int getMatricola() {
@@ -47,40 +47,40 @@ public class Medico {
 		return pazienteInAttesa;
 	}
 	
-	public void aggiungiPaziente(Prenotazione paziente) {
+	public void aggiungiPaziente(Prenotazione prenotazione) {
 		if(possoAccettareAltriPazienti()) {
-			pazienti.add(paziente);
+			prenotazioni.add(prenotazione);
 			pazienteInAttesa = false;
 		}
 		else
 			return;
 	}
 	
-	public void rimuoviPaziente(Prenotazione paziente) {
-		pazienti.remove(paziente);
+	public void rimuoviPaziente(Prenotazione prenotazione) {
+		prenotazioni.remove(prenotazione);
 		pazienteInAttesa = false;
 	}
 	
-	public void aggiungiPazienteInAttesa(Prenotazione paziente) {
-		pazientiInAttesa.add(paziente);
+	public void aggiungiPazienteInAttesa(Prenotazione prenotazione) {
+		prenotazioniInAttesa.add(prenotazione);
 		pazienteInAttesa = true;
 	}
 	
-	public void rimuoviPazienteInAttesa(Prenotazione paziente) {
-		pazientiInAttesa.remove(paziente);
+	public void rimuoviPazienteInAttesa(Prenotazione prenotazione) {
+		prenotazioniInAttesa.remove(prenotazione);
 		pazienteInAttesa = true;
 	}
 	
 	public LinkedList<Prenotazione> getPazienti() {
-		return pazienti;
+		return prenotazioni;
 	}
 	
 	public LinkedList<Prenotazione> getPazientiInAttesa() {
-		return pazientiInAttesa;
+		return prenotazioniInAttesa;
 	}
 	
 	public boolean possoAccettareAltriPazienti() {
-		return pazienti.size() < MAX_PAZIENTI;
+		return prenotazioni.size() < MAX_PAZIENTI;
 	}
 
 }

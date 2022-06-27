@@ -80,7 +80,8 @@ public class Server {
 	private Medico prenotazione_effettuata;
 	private int progressivo_esame;
 	private PrintWriter pw_prenotazione;
-	private String prenotazione;
+	private String prenotazione_da_inviare;
+	private Prenotazione prenotazione;
 	
 	private void init_prenotazione() {
 		try {
@@ -106,18 +107,19 @@ public class Server {
 			if( !prenotazione_effettuata.pazienteInAttesa() ) {
 				
 				pw_prenotazione = new PrintWriter(paziente.getOutputStream());
-				progressivo_esame = prenotazione_effettuata.getPazienti().indexOf(matricola_paziente) + 1;
-				prenotazione = codiceEsame + " " + progressivo_esame + " " + prenotazione_effettuata.getMatricola();
-				pw_prenotazione.println(prenotazione);
-				
+				prenotazione = new Prenotazione(codice_esame_richiesto, matricola_paziente);
+				progressivo_esame = prenotazione_effettuata.getPazienti().indexOf(prenotazione) + 1;
+				prenotazione_da_inviare = codiceEsame + " " + progressivo_esame + " " + prenotazione_effettuata.getMatricola();
+				pw_prenotazione.println(prenotazione_da_inviare);	
 			}
 			else {
 				
 				pw_prenotazione = new PrintWriter(paziente.getOutputStream());
+				prenotazione = new Prenotazione(codice_esame_richiesto, matricola_paziente);
 				progressivo_esame = prenotazione_effettuata.getPazienti().size() + 
-						prenotazione_effettuata.getPazientiInAttesa().indexOf(matricola_paziente) + 1;
-				prenotazione = codiceEsame + " " + progressivo_esame + " " +  prenotazione_effettuata.getMatricola();
-				pw_prenotazione.println(prenotazione);
+						prenotazione_effettuata.getPazientiInAttesa().indexOf(prenotazione) + 1;
+				prenotazione_da_inviare = codiceEsame + " " + progressivo_esame + " " +  prenotazione_effettuata.getMatricola();
+				pw_prenotazione.println(prenotazione_da_inviare);
 				
 			}
 			
@@ -150,55 +152,53 @@ public class Server {
 	}
 	
 	
-	private int PORT_UDP_ANNULLAMENTO_PRENOTAZIONE = 4000;
-	private DatagramSocket server;
-	private byte[] buffer;
-	private DatagramPacket annullamento_prenotazione;
-	private InetAddress address;
+	private int PORT_TCP_ANNULLAMENTO_PRENOTAZIONE = 4000;
+	private ServerSocket server_annullare_prenotazione;
+	private Socket paziente_annullare_prenotazione;
+	private BufferedReader br_annullamento_prenotazione;
+	private String annulla_prenotazione;
+	private PrintWriter pw_annullamento_prenotazione;
+	private String ack_annullamento_prenotazione;
 	
 	private void init_annullamento_prenotazione() {
 		
 		try {
 			
-			server = new DatagramSocket( PORT_UDP_ANNULLAMENTO_PRENOTAZIONE );
-			System.out.println(server.toString());
+			server_annullare_prenotazione = new ServerSocket( PORT_TCP_ANNULLAMENTO_PRENOTAZIONE );
+			System.out.println(server_annullare_prenotazione.toString());
 			
-			buffer = new byte[256];
-			annullamento_prenotazione = new DatagramPacket(buffer, buffer.length);
-			server.receive(annullamento_prenotazione);
-			address = annullamento_prenotazione.getAddress();
-					
-			String annullare_prenotazione = annullamento_prenotazione.toString();
-			if( annullare_prenotazione.toUpperCase().contains( "ANNULLARE" ) ||  annullare_prenotazione.toUpperCase().contains( "ANNULLA" ) ) {
+			paziente_annullare_prenotazione = server_annullare_prenotazione.accept();
+			System.out.println(paziente_annullare_prenotazione.toString());
+			
+			br_annullamento_prenotazione = new BufferedReader(new InputStreamReader(paziente_annullare_prenotazione.getInputStream()));
+			annulla_prenotazione = br_annullamento_prenotazione.toString();
+		
+			if( annulla_prenotazione.toUpperCase().contains( "ANNULLARE" ) ||  annulla_prenotazione.toUpperCase().contains( "ANNULLA" ) ) {
 				
-				boolean prenotazione_annullata = annullare_prenotazione_paziente( annullare_prenotazione );
+				boolean prenotazione_annullata = annullare_prenotazione_paziente( annulla_prenotazione );
 				
 				if( prenotazione_annullata ) {
 					
-					String ack = "------- PRENOTAZIONE ANNULLATA -------";
-					buffer = ack.getBytes();
-					 
-					annullamento_prenotazione = new DatagramPacket(buffer, buffer.length, address, PORT_UDP_ANNULLAMENTO_PRENOTAZIONE);
-					server.send(annullamento_prenotazione);
+					ack_annullamento_prenotazione = "------- PRENOTAZIONE ANNULLATA -------";
+					pw_annullamento_prenotazione = new PrintWriter(paziente_annullare_prenotazione.getOutputStream());
+					pw_annullamento_prenotazione.println(ack_annullamento_prenotazione);
 					
 				}
 				else {
 					
-					String ack = "*-*-*-*-* ERRORE *-*-*-* prenotazione NON annullata";
-					buffer = ack.getBytes();
-					 
-					annullamento_prenotazione = new DatagramPacket(buffer, buffer.length, address, PORT_UDP_ANNULLAMENTO_PRENOTAZIONE);
-					server.send(annullamento_prenotazione);
+					ack_annullamento_prenotazione = "*-*-*-*-* ERRORE *-*-*-* prenotazione NON annullata";
+					pw_annullamento_prenotazione = new PrintWriter(paziente_annullare_prenotazione.getOutputStream());
+					pw_annullamento_prenotazione.println(ack_annullamento_prenotazione);
 					
 				}
 				
 			}
 			else {
-				String ack = "%%%%%%% ERRORE %%%%%%%";
-				buffer = ack.getBytes();
-				 
-				annullamento_prenotazione = new DatagramPacket(buffer, buffer.length, address, PORT_UDP_ANNULLAMENTO_PRENOTAZIONE);
-				server.send(annullamento_prenotazione);
+				
+				ack_annullamento_prenotazione = "%%%%%%% ERRORE %%%%%%%";
+				pw_annullamento_prenotazione = new PrintWriter(paziente_annullare_prenotazione.getOutputStream());
+				pw_annullamento_prenotazione.println(ack_annullamento_prenotazione);
+				
 			}
 			
 		}catch(IOException e) {
@@ -207,10 +207,10 @@ public class Server {
 		
 	}
 	
-	private boolean annullare_prenotazione_paziente(String annullare_prenotazione) {
+	private boolean annullare_prenotazione_paziente(String annulla_prenotazione) {
 		boolean prenotazione_annullata = false;
 		
-		StringTokenizer st = new StringTokenizer(annullare_prenotazione);
+		StringTokenizer st = new StringTokenizer(annulla_prenotazione);
 		String annullare = st.nextToken();
 		String vuota = st.nextToken();
 		String codice_esame = st.nextToken();
