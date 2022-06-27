@@ -1,9 +1,8 @@
 package clinica_sanitaria;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Random;
@@ -23,17 +22,15 @@ public class Paziente extends Thread {
 	
 	
 	private int TCP_PORT_PRENOTAZIONE = 3000;
-	private ServerSocket paziente;
 	private Socket server;
-	private PrintWriter pw_prenotazione;
+	private ObjectOutputStream pw_prenotazione;
 	private String prenotazione;
 	
 	private int TCP_PORT_ANNULLAMENTO_PRENOTAZIONE = 4000;
-	private ServerSocket annullare_prenotazione;
 	private Socket server_annullare_prenotazione;
-	private PrintWriter pw_annullamento_prenotazione;
+	private ObjectOutputStream pw_annullamento_prenotazione;
 	private String annullamento_prenotazione;
-	private BufferedReader br_annullamento_prenotazione;
+	private ObjectInputStream br_annullamento_prenotazione;
 	private String ack_annullamento_prenotazione;
 
 	
@@ -41,35 +38,31 @@ public class Paziente extends Thread {
 		
 		try {
 			
-			paziente = new ServerSocket(TCP_PORT_PRENOTAZIONE);
-			System.out.println(paziente.toString());
-			server = paziente.accept();
+			server =  new Socket("localhost", TCP_PORT_PRENOTAZIONE);
 			System.out.println(server.toString());
 			
-			pw_prenotazione = new PrintWriter(server.getOutputStream());
+			pw_prenotazione = new ObjectOutputStream(server.getOutputStream());
 			Random random = new Random();
 			int codice_esame = random.nextInt(1, 5);
 			prenotazione = codice_esame + " " + this.matricola;
-			pw_prenotazione.println(prenotazione);
+			pw_prenotazione.writeObject(prenotazione);
 			
 			@SuppressWarnings("resource")
 			Scanner scanner = new Scanner(System.in);
 			String line = scanner.nextLine();
 			
-			annullare_prenotazione = new ServerSocket(TCP_PORT_ANNULLAMENTO_PRENOTAZIONE);
-			System.out.println(annullare_prenotazione.toString());
-			server_annullare_prenotazione = annullare_prenotazione.accept();
+			server_annullare_prenotazione = new Socket("localhost", TCP_PORT_ANNULLAMENTO_PRENOTAZIONE);
 			System.out.println(server_annullare_prenotazione.toString());
 			
-			pw_annullamento_prenotazione = new PrintWriter(server_annullare_prenotazione.getOutputStream());
+			pw_annullamento_prenotazione = new ObjectOutputStream(server_annullare_prenotazione.getOutputStream());
 			annullamento_prenotazione = line;
-			pw_annullamento_prenotazione.println(annullamento_prenotazione);
+			pw_annullamento_prenotazione.writeObject(annullamento_prenotazione);
 			
-			br_annullamento_prenotazione = new BufferedReader(new InputStreamReader(server_annullare_prenotazione.getInputStream()));
-			ack_annullamento_prenotazione = br_annullamento_prenotazione.readLine();
+			br_annullamento_prenotazione = new ObjectInputStream(server_annullare_prenotazione.getInputStream());
+			ack_annullamento_prenotazione = (String) br_annullamento_prenotazione.readObject();
 			System.out.println(ack_annullamento_prenotazione);
 			
-		}catch(IOException e) {
+		}catch(IOException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}
 		
