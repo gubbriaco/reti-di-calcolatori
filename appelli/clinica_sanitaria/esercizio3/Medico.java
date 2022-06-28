@@ -1,4 +1,4 @@
-package clinica_sanitaria;
+package clinica_sanitaria.esercizio3;
 
 import java.util.LinkedList;
 

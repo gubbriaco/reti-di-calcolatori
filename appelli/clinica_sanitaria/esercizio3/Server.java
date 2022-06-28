@@ -1,4 +1,4 @@
-package clinica_sanitaria;
+package clinica_sanitaria.esercizio3;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -12,7 +12,7 @@ import java.util.LinkedList;
 import java.util.Random;
 import java.util.StringTokenizer;
 
-import clinica_sanitaria.Medico.Prenotazione;
+import clinica_sanitaria.esercizio3.Medico.Prenotazione;
 
 public class Server {
 	
