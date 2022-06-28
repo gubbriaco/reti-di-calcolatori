@@ -3,9 +3,12 @@ package portook;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 
 public class Porto {
 	
@@ -42,14 +45,18 @@ public class Porto {
 		ServerSocket server;
 		Socket nave;
 		RichiestaHandler rh;
+		Calendar tempo_richiesta;
 		try {
 			
 			server = new ServerSocket(TCP_PORT);
+			System.out.println(server.toString());
 			
 			while(true) {
 				
 				nave = server.accept();
-				rh = new RichiestaHandler( nave, porto.getOperatori(), porto.getBanchine() );
+				System.out.println(nave.toString());
+				tempo_richiesta = Calendar.getInstance(TimeZone.getTimeZone("Europe/Rome"), Locale.ITALY);
+				rh = new RichiestaHandler( tempo_richiesta, nave, porto.getOperatori(), porto.getBanchine() );
 				rh.start();
 			}
 			
