@@ -76,7 +76,7 @@ public class RichiestaHandler extends Thread {
 	
 	@Override public void run() {
 		
-		synchronized(risposte ) {synchronized(coda) {
+		synchronized(risposte ) { synchronized(coda) {
 			try {
 				
 				ois = new ObjectInputStream( socketTCP.getInputStream() );
