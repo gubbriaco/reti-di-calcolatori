@@ -76,109 +76,110 @@ public class RichiestaHandler extends Thread {
 	
 	@Override public void run() {
 		
-		try {
-			
-			ois = new ObjectInputStream( socketTCP.getInputStream() );
-			richiesta = (Richiesta)ois.readObject();
-			richiesta_string = richiesta.toString();
-			richiesta_split = richiesta_string.split(",");
-			id_nave = Integer.parseInt(richiesta_split[0]);
-			lunghezza_nave = Integer.parseInt(richiesta_split[1]);
-			nr_container_da_scaricare = Integer.parseInt(richiesta_split[2]);
-			
-			nave = new Nave(id_nave, lunghezza_nave, nr_container_da_scaricare);
-			
-			bh = new RispostaHandler( nave, this);
-			bh.start();
-			
-			/** deve terminare la sua esecuzione cosi' da prelevare la risposta 
-			 *  dalla struttura dati {@link RichiestaHandler@risposte} */
-			while( bh.isAlive() )
-				;
-			
-			/** controllo se la richiesta e' stata gestita oppure e' stata messa in 
-			 *  attesa a causa di banchine non libere */
-			if( !coda.isEmpty() ) {
-				@SuppressWarnings("unused")
-				Banchina banchina_idonea;
-				boolean trovata_banchina_idonea = false;
+		synchronized(risposte ) {synchronized(coda) {
+			try {
 				
-				fra5minuti = tempo_richiesta;
-				fra5minuti.add(Calendar.SECOND, +5);
-				while(!trovata_banchina_idonea) {
-					
-					
-					if(tempo_richiesta.equals(fra5minuti)) {
-						
-						socketUDP = new DatagramSocket(UDP_PORT);
-						System.out.println(socketUDP.toString());
-						
-						buffer = new byte[256];
-						tempo_medio_attesa = 120;
-						buffer = ("TEMPO MEDIO DI ATTESA: " + String.valueOf(tempo_medio_attesa)).getBytes();
-						
-						address = InetAddress.getByName(HOST_NAME);
-						packet = new DatagramPacket(buffer, buffer.length, address, UDP_PORT);
-						socketUDP.send(packet);
+				ois = new ObjectInputStream( socketTCP.getInputStream() );
+				richiesta = (Richiesta)ois.readObject();
+				richiesta_string = richiesta.toString();
+				richiesta_split = richiesta_string.split(",");
+				id_nave = Integer.parseInt(richiesta_split[0]);
+				lunghezza_nave = Integer.parseInt(richiesta_split[1]);
+				nr_container_da_scaricare = Integer.parseInt(richiesta_split[2]);
 				
-						/** calcolo nuovamente il tempo */
-						tempo_richiesta =  Calendar.getInstance(TimeZone.getTimeZone("Europe/Rome"), Locale.ITALY);
-						fra5minuti = tempo_richiesta;
-						fra5minuti.add(Calendar.SECOND, +5);
-					}
+				nave = new Nave(id_nave, lunghezza_nave, nr_container_da_scaricare);
+				
+				bh = new RispostaHandler( nave, this);
+				bh.start();
+				
+				/** deve terminare la sua esecuzione cosi' da prelevare la risposta 
+				 *  dalla struttura dati {@link RichiestaHandler@risposte} */
+				while( bh.isAlive() )
+					;
+				
+				/** controllo se la richiesta e' stata gestita oppure e' stata messa in 
+				 *  attesa a causa di banchine non libere */
+				if( !coda.isEmpty() ) {
+					@SuppressWarnings("unused")
+					Banchina banchina_idonea;
+					boolean trovata_banchina_idonea = false;
 					
-					for( int i=0;i<banchine.size();++i ) {
-						Banchina banchina = banchine.get(i);
-						if(nave.getLunghezza() <= 40) {
-							if( !banchina.getPiu40() && !banchina.getIsBusy() ) {
-								banchina.aggiungiNave(nave);
-								banchina_idonea = banchina;
-								trovata_banchina_idonea = true;
-								break;
-							}
-						}else {
-							if( banchina.getPiu40() && !banchina.getIsBusy() ) {
-								banchina.aggiungiNave(nave);
-								banchina_idonea = banchina;
-								trovata_banchina_idonea = true;
-								break;
+					fra5minuti = tempo_richiesta;
+					fra5minuti.add(Calendar.SECOND, +5);
+					while(!trovata_banchina_idonea) {
+						
+						
+						if(tempo_richiesta.equals(fra5minuti)) {
+							
+							socketUDP = new DatagramSocket(UDP_PORT);
+							System.out.println(socketUDP.toString());
+							
+							buffer = new byte[256];
+							tempo_medio_attesa = 120;
+							buffer = ("TEMPO MEDIO DI ATTESA: " + String.valueOf(tempo_medio_attesa)).getBytes();
+							
+							address = InetAddress.getByName(HOST_NAME);
+							packet = new DatagramPacket(buffer, buffer.length, address, UDP_PORT);
+							socketUDP.send(packet);
+					
+							/** calcolo nuovamente il tempo */
+							tempo_richiesta =  Calendar.getInstance(TimeZone.getTimeZone("Europe/Rome"), Locale.ITALY);
+							fra5minuti = tempo_richiesta;
+							fra5minuti.add(Calendar.SECOND, +5);
+						}
+						
+						for( int i=0;i<banchine.size();++i ) {
+							Banchina banchina = banchine.get(i);
+							if(nave.getLunghezza() <= 40) {
+								if( !banchina.getPiu40() && !banchina.getIsBusy() ) {
+									banchina.aggiungiNave(nave);
+									banchina_idonea = banchina;
+									trovata_banchina_idonea = true;
+									break;
+								}
+							}else {
+								if( banchina.getPiu40() && !banchina.getIsBusy() ) {
+									banchina.aggiungiNave(nave);
+									banchina_idonea = banchina;
+									trovata_banchina_idonea = true;
+									break;
+								}
 							}
 						}
+						
+						if( trovata_banchina_idonea )
+							break;
 					}
-					
-					if( trovata_banchina_idonea )
-						break;
 				}
-			}
-			
-			
-			oos = new ObjectOutputStream( socketTCP.getOutputStream() );
-			risposta = ((LinkedList<Risposta>)risposte).getFirst();
-			oos.writeObject(risposta);
-			oos.flush();
-			
-			
-			for(int i=0;i<nave.getNr_container_da_scaricare();++i) {
-				random = new Random();
-				tempo_scarico = random.nextInt(MIN_TEMPO_SCARICO, MAX_TEMPO_SCARICO+1);  
-				Thread.sleep(tempo_scarico);
-			}
 				
-			oos = new ObjectOutputStream( socketTCP.getOutputStream() );
-			ok = "OK";
-			oos.writeObject(ok);
-			oos.flush();
-			
-			/** la banchina sara' di nuovo libera */
-			for(int i=0;i<banchine.size();++i)
-				if(banchine.get(i).getId() == risposta.getNrBanchina())
-					banchine.get(i).rimuoviNave(nave);
 				
-			
-		}catch(IOException | ClassNotFoundException | InterruptedException e) {
-			e.printStackTrace();
-		}
-		
+				oos = new ObjectOutputStream( socketTCP.getOutputStream() );
+				risposta = ((LinkedList<Risposta>)risposte).getFirst();
+				oos.writeObject(risposta);
+				oos.flush();
+				
+				
+				for(int i=0;i<nave.getNr_container_da_scaricare();++i) {
+					random = new Random();
+					tempo_scarico = random.nextInt(MIN_TEMPO_SCARICO, MAX_TEMPO_SCARICO+1);  
+					Thread.sleep(tempo_scarico);
+				}
+					
+				oos = new ObjectOutputStream( socketTCP.getOutputStream() );
+				ok = "OK";
+				oos.writeObject(ok);
+				oos.flush();
+				
+				/** la banchina sara' di nuovo libera */
+				for(int i=0;i<banchine.size();++i)
+					if(banchine.get(i).getId() == risposta.getNrBanchina())
+						banchine.get(i).rimuoviNave(nave);
+					
+				
+			}catch(IOException | ClassNotFoundException | InterruptedException e) {
+				e.printStackTrace();
+			}
+		}}
 	}
 	
 	

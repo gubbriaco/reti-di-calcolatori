@@ -40,30 +40,31 @@ public class Porto {
 		 *  essendo che possono essere occupate da diverse navi nel tempo */
 		List<Banchina> banchine = Collections.synchronizedList(new LinkedList<Banchina>());
 		
-		Porto porto = new Porto(operatori, banchine);
-		
-		ServerSocket server;
-		Socket nave;
-		RichiestaHandler rh;
-		Calendar tempo_richiesta;
-		try {
+		synchronized(banchine) {
+			Porto porto = new Porto(operatori, banchine);
 			
-			server = new ServerSocket(TCP_PORT);
-			System.out.println(server.toString());
-			
-			while(true) {
+			ServerSocket server;
+			Socket nave;
+			RichiestaHandler rh;
+			Calendar tempo_richiesta;
+			try {
 				
-				nave = server.accept();
-				System.out.println(nave.toString());
-				tempo_richiesta = Calendar.getInstance(TimeZone.getTimeZone("Europe/Rome"), Locale.ITALY);
-				rh = new RichiestaHandler( tempo_richiesta, nave, porto.getOperatori(), porto.getBanchine() );
-				rh.start();
+				server = new ServerSocket(TCP_PORT);
+				System.out.println(server.toString());
+				
+				while(true) {
+					
+					nave = server.accept();
+					System.out.println(nave.toString());
+					tempo_richiesta = Calendar.getInstance(TimeZone.getTimeZone("Europe/Rome"), Locale.ITALY);
+					rh = new RichiestaHandler( tempo_richiesta, nave, porto.getOperatori(), porto.getBanchine() );
+					rh.start();
+				}
+				
+			}catch(IOException e) {
+				e.printStackTrace();
 			}
-			
-		}catch(IOException e) {
-			e.printStackTrace();
 		}
-		
 	}
 
 }
