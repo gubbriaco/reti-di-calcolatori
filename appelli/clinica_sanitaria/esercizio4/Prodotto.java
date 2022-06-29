@@ -34,14 +34,15 @@ public class Prodotto implements Serializable {
 		return (codice + nome + produttore).hashCode() + (prezzo + "").hashCode();
 	}
 	
-	@Override public boolean equals(Object prodotto) {
-		if(!(this instanceof Object))
+	@Override public boolean equals(Object o) {
+		if(!(o instanceof Prodotto))
 			return false;
-		if(!this.codice.equals(((Prodotto)prodotto).codice))
+		Prodotto p = (Prodotto)o;
+		if(!this.codice.equals(p.codice))
 			return false;
-		if(!this.nome.equals(((Prodotto)prodotto).nome))
+		if(!this.nome.equals(p.nome))
 			return false;
-		if(this.prezzo != ((Prodotto)prodotto).prezzo)
+		if(this.prezzo != p.prezzo)
 			return false;
 		return true;
 	}

@@ -39,13 +39,14 @@ public class ListaProdotti implements Serializable {
 		return hashCode;
 	}
 	
-	@Override public boolean equals(Object listaProdotti) {
-		if(!(this instanceof Object))
+	@Override public boolean equals(Object o) {
+		if(!(o instanceof ListaProdotti))
 			return false;
-		if(this.prodotti.size() != ((ListaProdotti)listaProdotti).prodotti.size())
+		ListaProdotti lp = (ListaProdotti)o;
+		if(this.prodotti.size() != lp.prodotti.size())
 			return false;
 		for(int i=0;i<this.prodotti.size();++i)
-			if(!this.prodotti.get(i).equals(((ListaProdotti)listaProdotti).prodotti.get(i)))
+			if(!this.prodotti.get(i).equals(lp.prodotti.get(i)))
 				return false;
 		return true;
 	}

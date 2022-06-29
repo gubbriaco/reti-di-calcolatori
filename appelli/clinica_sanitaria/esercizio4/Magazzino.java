@@ -44,15 +44,16 @@ public class Magazzino {
 		return hashCode;	
 	}
 	
-	@Override public boolean equals(Object magazzino) {
+	@Override public boolean equals(Object o) {
 		
-		if(!(this instanceof Object))
+		if(!(o instanceof Magazzino))
 			return false;
-		if(this.id != ((Magazzino)magazzino).id)
+		Magazzino m = (Magazzino)o;
+		if(this.id != m.id)
 			return false;
-		if(this.getIncasso() != ((Magazzino)magazzino).getIncasso())
+		if(this.getIncasso() != m.getIncasso())
 			return false;
-		return this.listaProdotti.equals(((Magazzino)magazzino).listaProdotti);
+		return this.listaProdotti.equals(m.listaProdotti);
 	}
 	
 	@Override public String toString() {
