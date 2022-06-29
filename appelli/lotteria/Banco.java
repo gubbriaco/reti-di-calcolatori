@@ -18,7 +18,7 @@ public class Banco {
 	
 	private final static int TCP_PORT = 3000;
 	private final static int MULTICAST_PORT = 4000;
-	private final static String address = "230.0.0.1";
+	private final static String address = "localhost";
 	
 	@SuppressWarnings("unused")
 	private List<Lotteria> lotterie;
