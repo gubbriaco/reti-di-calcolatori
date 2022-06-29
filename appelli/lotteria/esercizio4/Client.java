@@ -1,4 +1,4 @@
-package lotteria;
+package lotteria.esercizio4;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -14,7 +14,7 @@ public class Client {
 	
 	private final static int TCP_PORT = 3000;
 	private final static int MULTICAST_PORT = 4000;
-	private final static String address = "localhost";
+	private final static String address = "230.0.0.1";
 	
 	private Biglietto biglietto_da_giocare;
 	

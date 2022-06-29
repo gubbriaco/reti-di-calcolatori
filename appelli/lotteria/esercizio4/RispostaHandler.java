@@ -1,4 +1,4 @@
-package lotteria;
+package lotteria.esercizio4;
 
 import java.util.Collections;
 import java.util.LinkedList;
