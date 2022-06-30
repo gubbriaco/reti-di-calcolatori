@@ -78,7 +78,7 @@ public class Banco {
 				tempo_attuale = Calendar.getInstance(TimeZone.getTimeZone("Europe/Rome"), Locale.ITALY);
 				System.out.println("current: " + tempo_attuale.toString());
 				
-				while( !tempo_close_server.equals(tempo_attuale) ) {
+				while( tempo_close_server.get(Calendar.MINUTE) != tempo_attuale.get(Calendar.MINUTE)) {
 					
 					socket = server.accept();
 					System.out.println(socket.toString());
@@ -139,5 +139,6 @@ public class Banco {
 		
 		return biglietto_vincitore;	
 	}
+	
 
 }
