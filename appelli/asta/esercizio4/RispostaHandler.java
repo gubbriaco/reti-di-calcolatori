@@ -1,4 +1,4 @@
-package asta;
+package asta.esercizio4;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
