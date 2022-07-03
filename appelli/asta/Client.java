@@ -7,27 +7,31 @@ import java.net.DatagramSocket;
 import java.net.Socket;
 import java.util.Random;
 
-public class Client extends Thread {
+public class Client{
 	
 	private final static int TCP_PORT_OFFERTE=3000, UDP_PORT_PIUALTA=4000;
 	private final static String HOST_NAME="asta.unical.it";
 	
-	private String client_id;
+	private String id;
 	
-	public Client(String client_id) {
-		this.client_id = client_id;
+	public Client(String id) {
+		this.id = id;
 	}
 	
-	public String getClient_Id() {
-		return client_id;
+	public String getId() {
+		return id;
 	}
-	
 	
 	
 	@SuppressWarnings("resource")
-	@Override public void run() {
+	public static void main(String...strings) {
+		
+		Random random = new Random();
+		int id = random.nextInt();
+		Client client = new Client(String.valueOf(id));
+		
 		try {
-			
+		
 			Socket socket = new Socket(HOST_NAME, TCP_PORT_OFFERTE);
 			System.out.println(socket.toString());
 			
@@ -36,7 +40,7 @@ public class Client extends Thread {
 			double prezzo_minimo = 200;
 			Prodotto prodotto = new Prodotto(codice, time, prezzo_minimo);
 			int cifra = 250;
-			Offerta offerta = new Offerta(prodotto, this, cifra);
+			Offerta offerta = new Offerta(prodotto, client, cifra);
 			
 			ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
 			oos.writeObject(offerta);
@@ -54,7 +58,7 @@ public class Client extends Thread {
 			String client_id = msg_splitted[0];
 			String codice_prodotto = msg_splitted[1];
 			
-			if(client_id.equals(this.client_id))
+			if(client_id.equals(client.getId()))
 				System.out.println("VINCITORE_" + "[" + codice_prodotto + "]");
 			else
 				System.out.println("NON VINCITORE_" + "[" + codice_prodotto + "]");
@@ -63,13 +67,6 @@ public class Client extends Thread {
 			e.printStackTrace();
 		}
 	}
-	
-	
-	public static void main(String...strings) {
-		Random random = new Random();
-		int id = random.nextInt();
-		Client client = new Client(String.valueOf(id));
-		client.start();
-	}
+
 
 }

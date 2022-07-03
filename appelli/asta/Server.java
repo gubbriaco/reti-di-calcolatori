@@ -52,6 +52,8 @@ public class Server {
 					}
 					
 					Socket socket = server.accept();
+					System.out.println(socket.toString());
+					
 					ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
 					ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
 					String server_offline = "SCADUTA";
@@ -61,7 +63,7 @@ public class Server {
 					DatagramSocket ds = new DatagramSocket(UDP_PORT_PIUALTA);
 					offerte.sort(new OfferteComparator());
 					Offerta piuAlta = ((LinkedList<Offerta>)offerte).getFirst();
-					String offerta_vincente = piuAlta.getClient().getClient_Id() + "," + piuAlta.getProdotto().getCodice();
+					String offerta_vincente = piuAlta.getClient().getId() + "," + piuAlta.getProdotto().getCodice();
 					byte[] buffer = offerta_vincente.getBytes();
 					InetAddress address = InetAddress.getByName(HOST_NAME);
 					DatagramPacket packet = new DatagramPacket(buffer, buffer.length, address, UDP_PORT_PIUALTA);
