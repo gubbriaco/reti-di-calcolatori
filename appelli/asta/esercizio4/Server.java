@@ -8,6 +8,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -43,12 +44,18 @@ public class Server {
 					
 					while(true) {
 						
-						Socket socket = server.accept();
-						System.out.println(socket.toString());
+						try {
+							
+							Socket socket = server.accept();
+							System.out.println(socket.toString());
+							
+							RichiestaHandler rh = new RichiestaHandler(socket, prodotti, offerte);
+							rh.start();
+							
+						}catch(SocketTimeoutException e) {
+							break;
+						}
 						
-						RichiestaHandler rh = new RichiestaHandler(socket, prodotti, offerte);
-						rh.start();
-									
 					}
 					
 					Socket socket = server.accept();
@@ -77,7 +84,7 @@ public class Server {
 		
 	}
 	
-	class OfferteComparator implements Comparator<Offerta> {
+	static class OfferteComparator implements Comparator<Offerta> {
 		
 		@Override public int compare(Offerta o1, Offerta o2) {
 			if(o1.getCifra() > o2.getCifra())
