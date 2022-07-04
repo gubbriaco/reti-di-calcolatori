@@ -23,7 +23,7 @@ public class RichiestaHandler extends Thread {
 			ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
 			Offerta offerta = (Offerta)ois.readObject();
 			
-			boolean offertaOK = verificaOfferta(socket, offerta, prodotti);
+			boolean offertaOK = verificaOfferta(offerta, prodotti);
 			if(offertaOK) {
 
 				offerte.add(offerta);
@@ -44,7 +44,7 @@ public class RichiestaHandler extends Thread {
 		}
 	}
 	
-	private static boolean verificaOfferta(Socket s, Offerta offerta, List<Prodotto> prodotti) {
+	private static boolean verificaOfferta(Offerta offerta, List<Prodotto> prodotti) {
 		
 		for(int i=0;i<prodotti.size();++i) {
 			if(prodotti.get(i).equals(offerta.getProdotto()))
