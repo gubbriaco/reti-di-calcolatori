@@ -61,6 +61,8 @@ public class Server {
 					Socket socket = server.accept();
 					System.out.println(socket.toString());
 					
+					/** non bisogna leggere l'oggetto perche' la sessione di ricezione delle offerte è
+					 *  scaduta */
 					ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
 					ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
 					String server_offline = "SCADUTA";
@@ -74,7 +76,7 @@ public class Server {
 					byte[] buffer = offerta_vincente.getBytes();
 					InetAddress address = InetAddress.getByName(HOST_NAME);
 					DatagramPacket packet = new DatagramPacket(buffer, buffer.length, address, UDP_PORT_PIUALTA);
-					
+					ds.send(packet);
 				}
 			}
 			
