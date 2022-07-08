@@ -8,7 +8,6 @@ public class Elaboratore {
 	
 	private final static int TCP_PORT_OFFERTA = 3000;
 	
-	@SuppressWarnings("unused")
 	private String address;
 	
 	public Elaboratore(String address) {
