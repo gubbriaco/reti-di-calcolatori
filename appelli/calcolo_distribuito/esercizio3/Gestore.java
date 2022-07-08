@@ -1,4 +1,4 @@
-package calcolo_distribuito;
+package calcolo_distribuito.esercizio3;
 
 import java.io.IOException;
 import java.net.ServerSocket;
