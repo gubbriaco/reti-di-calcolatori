@@ -9,6 +9,7 @@ import java.net.MulticastSocket;
 import java.net.Socket;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 public class Utente extends Thread {
 	
@@ -31,6 +32,7 @@ public class Utente extends Thread {
 		
 		try {
 			
+			/** riceve nuove offerte di lavoro */
 			InetAddress address_group = InetAddress.getByName(ADDRESS);
 			MulticastSocket ms = new MulticastSocket(MC_PORT);
 			ms.joinGroup(address_group);
@@ -39,13 +41,28 @@ public class Utente extends Thread {
 			DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 			ms.receive(packet);
 			
-			String offerta = new String(packet.getData());
-			String[] offerta_splitted = offerta.split(",");
-			int id_numerico = Integer.valueOf(offerta_splitted[0]);
+			String offerta_string = new String(packet.getData());
+			String[] offerta_splitted = offerta_string.split(",");
+			String settore = offerta_splitted[1];
+			String ruolo = offerta_splitted[2];
+			String tipo = offerta_splitted[3];
+			String ral = offerta_splitted[4];
+			boolean attiva = Boolean.valueOf(offerta_splitted[5]);
+			String address = offerta_splitted[6];
+			
+			/** aggiungo l'offerta ricevuta dal server */
+			Offerta offerta = new Offerta(settore, ruolo, tipo, ral, attiva, address);
+			offerte_ricevute.add(offerta);
+			
 			
 			Socket socket = new Socket(ADDRESS_SERVER, TCP_PORT_INVIO);
 			ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
 			String curriculum = "";
+			
+			Random random = new Random();
+			int i = random.nextInt(0, offerte_ricevute.size());
+			int id_numerico = offerte_ricevute.get(i).getIdNumerico();
+			
 			Candidatura candidatura = new Candidatura(id_numerico, curriculum);
 			oos.writeObject(candidatura);
 			oos.flush();

@@ -61,6 +61,7 @@ public class Server {
 			
 			while(true) {
 				
+				/** accetta offerte di lavoro dalle aziende */
 				ServerSocket offerte_server = new ServerSocket(s.TCP_PORT_OFFERTE);
 				Socket socket_offerta = offerte_server.accept();
 				
