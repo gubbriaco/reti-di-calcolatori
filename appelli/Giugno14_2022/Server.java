@@ -59,10 +59,14 @@ public class Server {
 		
 		try {
 			
+			/** server offerte di lavoro */
+			ServerSocket offerte_server = new ServerSocket(s.TCP_PORT_OFFERTE);
+			/** server candidature di lavoro */
+			ServerSocket candidature_server = new ServerSocket(s.TCP_PORT_CANDIDATURE);
+			
 			while(true) {
 				
 				/** accetta offerte di lavoro dalle aziende */
-				ServerSocket offerte_server = new ServerSocket(s.TCP_PORT_OFFERTE);
 				Socket socket_offerta = offerte_server.accept();
 				
 				ObjectInputStream ois = new ObjectInputStream(socket_offerta.getInputStream());
@@ -79,8 +83,6 @@ public class Server {
 				/** offerta valida per 30 giorni */
 				new ThreadTimer(s, socket_offerta, offerta).start();
 				
-				/** invio in broadcast agli utenti dell'offerta di lavoro ricevuta dall'azienda */
-				new ThreadInvioOfferta(offerta).start();
 				
 				/** invio l'id numerico generato dell'offerta all'azienda che l'ha inviata*/
 				ObjectOutputStream oos = new ObjectOutputStream(socket_offerta.getOutputStream());
@@ -88,8 +90,11 @@ public class Server {
 				oos.flush();
 				
 				
+				/** invio in broadcast agli utenti dell'offerta di lavoro ricevuta dall'azienda */
+				new ThreadInvioOfferta(offerta).start();
+				
+				
 				/** accetto candidature dagli utenti */
-				ServerSocket candidature_server = new ServerSocket();
 				Socket socket_candidatura = candidature_server.accept();
 				
 				/** gestisco le connessioni multiple per ogni candidatura richiesta */
