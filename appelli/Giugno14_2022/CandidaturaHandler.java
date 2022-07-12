@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.Socket;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
 public class CandidaturaHandler extends Thread {
 	

@@ -7,6 +7,7 @@ import java.util.List;
 public class DistributoriBenzinaService {
 
 	private List<Distributore> distributori;
+
 	
 	public DistributoriBenzinaService(List<Distributore> distributori) {
 		this.distributori = distributori;

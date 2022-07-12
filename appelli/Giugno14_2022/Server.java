@@ -128,7 +128,6 @@ public class Server {
 						buffer, buffer.length, address_group, MC_PORT);
 				mc.send(packet);
 				
-				
 			}catch(IOException e) {
 				e.printStackTrace();
 			}

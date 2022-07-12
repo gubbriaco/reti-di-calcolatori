@@ -63,9 +63,7 @@ public class Distributore implements Serializable {
 		if(!(o instanceof Distributore))
 			return false;
 		Distributore d = (Distributore)o;
-		return this.partitaIva.equals(d.partitaIva) && this.regioneSociale.equals(d.regioneSociale) &&
-			   this.regione.equals(d.regione) && this.prezzoDiesel==d.prezzoDiesel && 
-			   this.prezzoBenzina== d.prezzoBenzina;
+		return this.partitaIva.equals(d.partitaIva);
 	}
 	
 	@Override public String toString() {
